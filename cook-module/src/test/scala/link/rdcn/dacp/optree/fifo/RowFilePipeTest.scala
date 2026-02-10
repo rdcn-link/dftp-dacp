@@ -1,4 +1,4 @@
-package link.rdcn.optree.fifo
+package link.rdcn.dacp.optree.fifo
 
 import link.rdcn.dacp.optree.fifo.RowFilePipe
 import link.rdcn.struct.StructType

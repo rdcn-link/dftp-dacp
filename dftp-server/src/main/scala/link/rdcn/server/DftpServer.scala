@@ -402,19 +402,21 @@ class DftpServer(config: DftpServerConfig) extends Logging {
             case putTicket if putBlobParametersCache.contains(putTicket) =>
               new DftpPutBlobRequest {
                 override def getBlob(): Blob = new Blob {
+                  private val stream: Iterator[Array[Byte]] = ServerUtils.flightStreamToRowIterator(flightStream)
+                    .map(row => row.get(0) match {
+                      case arr: Array[Byte] => arr
+                      case other => throw new IllegalArgumentException(
+                        s"Expected Array[Byte], but got ${other.getClass}"
+                      )
+                    })
                   override def offerStream[T](consume: InputStream => T): T = {
                     val inputStream = if(flightStream.next()) {
-                      val stream: Iterator[Array[Byte]] = ServerUtils.flightStreamToRowIterator(flightStream)
-                        .map(row => row.get(0) match {
-                          case arr: Array[Byte] => arr
-                          case other => throw new IllegalArgumentException(
-                            s"Expected Array[Byte], but got ${other.getClass}"
-                          )
-                        })
                       DataUtils.convertIteratorToInputStream(stream)
                     }else InputStream.nullInputStream()
                     consume(inputStream)
                   }
+
+                  override def openByteStream(): ClosableIterator[Array[Byte]] = ClosableIterator(stream)()
                 }
 
                 override def getUserPrincipal(): UserPrincipal =

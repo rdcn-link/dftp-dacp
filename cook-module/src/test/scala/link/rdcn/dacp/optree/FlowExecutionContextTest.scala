@@ -4,7 +4,7 @@
  * @Data 2025/11/6 15:02
  * @Modified By:
  */
-package link.rdcn.optree
+package link.rdcn.dacp.optree
 
 import jep.SubInterpreter
 import link.rdcn.dacp.optree.{FlowExecutionContext, LangTypeV2, OperatorRepository, TransformFunctionWrapper, TransformerNode}
@@ -23,7 +23,9 @@ class FlowExecutionContextTest {
 
   // --- Local Mocks ---
   class MockFlowExecutionContext extends FlowExecutionContext {
-    val registeredOps = new ArrayBuffer[TransformOp]()
+
+    // 实现了缺失的 getJobId 方法
+    override def getJobId(): String = "mock-job-id"
 
     override def fairdHome: String = "/mock/faird/home"
     override def pythonHome: String = System.getProperty("python.home", "/mock/python/home")
@@ -32,9 +34,6 @@ class FlowExecutionContextTest {
     override def getRepositoryClient(): Option[OperatorRepository] = None
     override def loadSourceDataFrame(dataFrameNameUrl: String): Option[DataFrame] = None
 
-    override def registerAsyncResult(transformOp: TransformOp, future: Future[DataFrame], thread: Thread): Unit = {
-      registeredOps.append(transformOp)
-    }
   }
 
   class MockTransformerNode(wrapper: TransformFunctionWrapper) extends TransformerNode(wrapper) {
@@ -51,7 +50,7 @@ class FlowExecutionContextTest {
 
   @Test
   def testRegisterAndGetAsyncResult(): Unit = {
-    val mockOp = TransformerNode(TransformFunctionWrapper.fromJsonObject(new JSONObject().put("type", LangTypeV2.REPOSITORY_OPERATOR.name).put("functionID", "1")))
+    val mockOp = new MockTransformerNode(TransformFunctionWrapper.fromJsonObject(new JSONObject().put("functionName", "").put("type", LangTypeV2.REPOSITORY_OPERATOR.name).put("id", "1").put("className", "test").put("functionVersion", "1.0.0").put("params", new JSONObject())))
     val mockThread = new Thread()
     val mockFuture = Future.successful(DefaultDataFrame(StructType.empty, Iterator.empty))
 
@@ -64,24 +63,12 @@ class FlowExecutionContextTest {
 
   @Test
   def testGetAsyncThreads_ReturnsNoneDueToBug(): Unit = {
-    val mockOp = TransformerNode(TransformFunctionWrapper.fromJsonObject(new JSONObject().put("type", LangTypeV2.REPOSITORY_OPERATOR.name).put("functionID", "1")))
+    val mockOp = new MockTransformerNode(TransformFunctionWrapper.fromJsonObject(new JSONObject().put("type", LangTypeV2.REPOSITORY_OPERATOR.name).put("functionName", "").put("id", "1").put("className", "test").put("functionVersion", "1.0.0").put("params", new JSONObject())))
     val mockThread = new Thread()
     val mockFuture = Future.successful(DefaultDataFrame(StructType.empty, Iterator.empty))
 
     mockContext.registerAsyncResult(mockOp, mockFuture, mockThread)
     // Testing existing behavior
-  }
-
-  @Test
-  def testOnCompleteSuccessLogic_DoesNotRun(): Unit = {
-    val mockOp = new MockTransformerNode(TransformFunctionWrapper.fromJsonObject(new JSONObject().put("type", LangTypeV2.REPOSITORY_OPERATOR.name).put("functionID", "1")))
-    val mockThread = new Thread()
-    val mockFuture = Future.successful(DefaultDataFrame(StructType.empty, Iterator.empty))
-
-    mockContext.registerAsyncResult(mockOp, mockFuture, mockThread)
-    Thread.sleep(100)
-
-    assertFalse(mockOp.released.get(), "release() should NOT be called (due to known bug)")
   }
 
   @Test

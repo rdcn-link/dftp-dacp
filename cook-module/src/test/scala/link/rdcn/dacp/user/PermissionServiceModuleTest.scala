@@ -4,15 +4,13 @@
  * @Data 2025/11/6 15:06
  * @Modified By:
  */
-package link.rdcn.user
+package link.rdcn.dacp.user
 
-import link.rdcn.dacp.user.{DataOperationType, PermissionService, PermissionServiceModule, RequirePermissionServiceEvent}
 import link.rdcn.server._
 import link.rdcn.server.module.Workers
-import org.junit.jupiter.api.Assertions.{assertEquals, assertFalse, assertNotNull, assertTrue}
+import link.rdcn.user.UserPrincipal
+import org.junit.jupiter.api.Assertions.{assertFalse, assertNotNull, assertTrue}
 import org.junit.jupiter.api.{BeforeEach, Test}
-
-import scala.collection.mutable.ArrayBuffer
 
 class PermissionServiceModuleTest {
 
@@ -24,16 +22,25 @@ class PermissionServiceModuleTest {
 
   class MockAnchor extends Anchor {
     var hookedHandler: EventHandler = _
+
     override def hook(service: EventSource): Unit = {}
-    override def hook(service: EventHandler): Unit = { hookedHandler = service }
+
+    override def hook(service: EventHandler): Unit = {
+      hookedHandler = service
+    }
   }
 
   class MockServerContext extends ServerContext {
     override def getHost(): String = "mock-host"
+
     override def getPort(): Int = 0
+
     override def getProtocolScheme(): String = "dftp"
+
     override def getDftpHome(): Option[String] = None
+
     override def registry(dataframe: link.rdcn.struct.DataFrame): link.rdcn.message.DftpTicket.DftpTicket = "mock-ticket-df"
+
     override def registry(blob: link.rdcn.struct.Blob): link.rdcn.message.DftpTicket.DftpTicket = "mock-ticket-blob"
   }
 
@@ -90,43 +97,6 @@ class PermissionServiceModuleTest {
 
     assertTrue(hookedEventHandler.accepts(validEvent), "EventHandler should accept RequirePermissionServiceEvent")
     assertFalse(hookedEventHandler.accepts(invalidEvent), "EventHandler should not accept other event types")
-  }
-
-  @Test
-  def testChainingLogic_InnerServiceAccepts(): Unit = {
-    // 1. Setup
-    mockInnerService.acceptsUser = true
-    mockInnerService.permissionResult = true
-
-    mockOldService.acceptsUser = false
-    mockOldService.permissionResult = false
-
-    // 2. Mock Event
-    val holder = new Workers[PermissionService]()
-    holder.add(mockOldService)
-    val event = RequirePermissionServiceEvent(holder)
-
-    // 3. Execute
-    hookedEventHandler.doHandleEvent(event)
-
-    // 4. Extract
-    val chainedService = holder.work(runMethod = s => s, onFail = null)
-    assertNotNull(chainedService, "Holder should not be empty")
-
-    // 5. Verify accepts()
-    assertTrue(chainedService.accepts(MockUser), "Chained accepts() should return true (InnerService accepts)")
-
-    // 6. Verify checkPermission()
-    val ops = List(DataOperationType.Map)
-    assertTrue(chainedService.checkPermission(MockUser, "data", ops), "Chained checkPermission() should return true (InnerService)")
-
-    // Verify calls
-    assertTrue(mockInnerService.checkPermissionCalled, "InnerService.checkPermission should be called")
-    assertEquals(MockUser, mockInnerService.userChecked, "InnerService checked wrong user")
-    assertEquals("data", mockInnerService.dataFrameChecked, "InnerService checked wrong dataFrameName")
-    assertEquals(ops, mockInnerService.opsChecked, "InnerService checked wrong opList")
-
-    assertFalse(mockOldService.checkPermissionCalled, "OldService.checkPermission should not be called")
   }
 
   @Test

@@ -206,8 +206,14 @@ class DacpCookModule extends DftpModule with Logging {
                       response.sendError(400, "empty request require jobId")
                     }
                     val transformOps = jobTransformOpsCache.get(jobId)
-                    if(transformOps.isEmpty) response.sendError(404, s"job $jobId not exist")
-                    else response.sendJSONObject(new JSONObject().put("process", getFlowProcess(transformOps.get)))
+                    val executionResult = jobResultCache.get(jobId)
+                    if(transformOps.isEmpty || executionResult.isEmpty) response.sendError(404, s"job $jobId not exist")
+                    else {
+                      val process = if(getFlowJobStatus(executionResult.get) == COMPLETE) 1.0 else getFlowProcess(transformOps.get)
+                      response.sendJSONObject(new JSONObject()
+                        .put("process", process)
+                        .put("throughput", getFlowThroughput(transformOps.get)))
+                    }
                   case _ => response.sendError(400, "")
                 }
               }
@@ -295,7 +301,7 @@ class DacpCookModule extends DftpModule with Logging {
             case RUNNING =>
             case COMPLETE =>
               flowLogger(jobId).info(
-                f"JobProgress | jobId=$jobId | progress=${getProgressPercent()}%.2f%% | throughput=${getThroughput()} rows/s"
+                s"JobProgress | jobId=$jobId | progress=100% | throughput=${getThroughput()} rows/s"
               )
               flowLogger(jobId).info(s"flow $jobId completed")
               stop()

@@ -1,12 +1,14 @@
 package link.rdcn.struct
 
-import link.rdcn.util.MimeTypeFactory
+import link.rdcn.util.{DataUtils, MimeTypeFactory}
 
 import java.io.{File, FileInputStream, InputStream}
 
 trait Blob {
 
   def offerStream[T](consume: InputStream => T): T
+
+  def openByteStream(): ClosableIterator[Array[Byte]]
 
   def size: Long = offerStream[Long](inputStream => {
     var size = 0L
@@ -39,6 +41,12 @@ object Blob {
         } finally {
           if (stream != null) stream.close()
         }
+      }
+
+      override def openByteStream(): ClosableIterator[Array[Byte]] = {
+        val inputStream = new FileInputStream(file)
+        val iter = DataUtils.chunkedIterator(inputStream)
+        ClosableIterator(iter)(inputStream.close())
       }
     }
   }

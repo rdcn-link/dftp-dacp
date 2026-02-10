@@ -33,6 +33,7 @@ case class ClosableIterator[T](
   private var closed = false
 
   private val startTime: Long = System.currentTimeMillis()
+  private var endTime: Long = -1L
   private var itemCount: Long = 0L
 
   @volatile
@@ -85,7 +86,9 @@ case class ClosableIterator[T](
 
 
   def itemsPerSecond: Double = {
-    val elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000.0
+    val elapsedSeconds = if(endTime == -1L) {
+      (System.currentTimeMillis() - startTime) / 1000.0
+    }else (System.currentTimeMillis() - endTime) / 1000.0
     itemCount.toDouble / elapsedSeconds
   }
 
@@ -93,6 +96,7 @@ case class ClosableIterator[T](
 
   override def close(): Unit = {
     if (!closed) {
+      endTime = System.currentTimeMillis()
       closed = true
       if (state == StreamState.Running) {
         state = StreamState.Closed

@@ -54,13 +54,13 @@ class DacpCatalogModuleTest {
     mockAnchor = new MockAnchor()
     mockContext = new MockServerContext()
 
-    // 1. Init Module
+    // Init Module
     moduleToTest.init(mockAnchor, mockContext)
 
-    // 2. Setup EventHub with registered handlers
+    // Setup EventHub with registered handlers
     mockEventHub = new MockEventHub(mockAnchor.hookedEventHandlers)
 
-    // 3. Init EventSource if the module has one
+    // Init EventSource if the module has one
     if (mockAnchor.hookedEventSource != null) {
       mockAnchor.hookedEventSource.init(mockEventHub)
     }
@@ -70,14 +70,14 @@ class DacpCatalogModuleTest {
   def testInit_RegistersActionMethod(): Unit = {
     // DacpCatalogModule should listen to CollectActionMethodEvent to register its CatalogActionMethod
 
-    // 1. Create the collector and event
+    // Create the collector and event
     val workers = new Workers[ActionMethod]()
     val event = new CollectActionMethodEvent(workers)
 
-    // 2. Fire the event (simulate Server startup)
+    // Fire the event (simulate Server startup)
     mockEventHub.fireEvent(event)
 
-    // 3. Verify that an ActionMethod was collected
+    // Verify that an ActionMethod was collected
     // We try to "work" with a dummy task to check if any worker was added
     var workerFound = false
     workers.work(
@@ -90,9 +90,9 @@ class DacpCatalogModuleTest {
     // we assume 'workers' is non-empty.
     // A better check is if we can find a handler for a specific catalog action.
 
-    // Let's verify by trying to handle a mock request
+    // verify by trying to handle a mock request
     val mockRequest = new DftpActionRequest {
-      override def getActionName(): String = "/getSchema" // A typical catalog action
+      override def getActionName(): String = "GET_SCHEMA" // A typical catalog action
       override def getRequestParameters(): JSONObject = new JSONObject()
       override def getUserPrincipal(): UserPrincipal = null
     }

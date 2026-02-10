@@ -1,4 +1,4 @@
-package link.rdcn.optree
+package link.rdcn.dacp.optree
 
 import jep.SharedInterpreter
 import link.rdcn.dacp.optree._
@@ -28,6 +28,8 @@ class TransformFunctionWrapperTest {
     override def getRepositoryClient(): Option[OperatorRepository] = Some(new RepositoryClient("10.0.89.38", 8088))
     override val fairdHome: String = TransformFunctionWrapperTest.this.fairdHome
     override def loadRemoteDataFrame(baseUrl: String, path: TransformOp, credentials: Credentials): Option[DataFrame] = None
+
+    override def getJobId(): String = ""
   }
 
   @Test
@@ -44,12 +46,13 @@ class TransformFunctionWrapperTest {
 
   @Test
   def javaJarTest(): Unit = {
+    import org.json.JSONObject
     val jarName = "dftp-plugin-impl-0.5.0-20250910.jar"
     val jarPath = Paths.get(fairdHome, "lib", "java", jarName).toString
 
     if (!new File(jarPath).exists()) return
 
-    val javaJar = JavaJar(jarPath, "Transformer11", "")
+    val javaJar = JavaJar(jarPath, "Transformer11", "", new JSONObject(), "")
     val newDataFrame = javaJar.applyToInput(dataFrames, ctx).asInstanceOf[DataFrame]
     newDataFrame.foreach(row => {
       assertEquals(1, row.getAs[Int](0), "JavaJar col_1 mismatch")

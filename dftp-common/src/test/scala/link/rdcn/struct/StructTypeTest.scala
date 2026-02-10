@@ -222,6 +222,6 @@ class StructTypeTest {
     val binarySchema = StructType.binaryStructType
     assertEquals(7, binarySchema.columns.length, "binaryStructType should have 7 columns")
     assertEquals(Column("name", StringType), binarySchema.columnAt(0), "binaryStructType 'name' column incorrect")
-    assertEquals(Column("File", BlobType), binarySchema.columnAt(6), "binaryStructType 'File' column incorrect")
+    assertEquals(Column("File", BinaryType), binarySchema.columnAt(6), "binaryStructType 'File' column incorrect")
   }
 }

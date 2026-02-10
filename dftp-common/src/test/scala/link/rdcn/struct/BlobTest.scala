@@ -27,7 +27,7 @@ class BlobTest {
     Files.write(file.toPath, content.getBytes(StandardCharsets.UTF_8))
 
     // Create Blob from file
-    val blob = Blob.fromFile(file,file.toString)
+    val blob = Blob.fromFile(file)
     assertNotNull(blob, "Blob creation failed")
 
     // Consume stream and verify

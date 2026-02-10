@@ -120,22 +120,34 @@ class DftpClient(host: String, port: Int, useTLS: Boolean = false) extends Loggi
     val blobHandler = openBlob(url)
 
     new Blob {
+      private val chunkIterator = getStream(blobHandler.getDataFrameTicket).map(value => {
+        assert(value.values.length == 1)
+        value._1 match {
+          case v: Array[Byte] => v
+          case other => throw new Exception(s"Blob parsing failed: expected Array[Byte], but got ${other}")
+        }
+      })
+
       override def offerStream[T](consume: InputStream => T): T = {
-        val chunkIterator = getStream(blobHandler.getDataFrameTicket).map(value => {
-          assert(value.values.length == 1)
-          value._1 match {
-            case v: Array[Byte] => v
-            case other => throw new Exception(s"Blob parsing failed: expected Array[Byte], but got ${other}")
-          }
-        })
         val inputStream = DataUtils.convertIteratorToInputStream(chunkIterator)
         consume(inputStream)
       }
+
+      override def openByteStream(): ClosableIterator[Array[Byte]] = ClosableIterator(chunkIterator)()
     }
   }
 
   def get(url: String): DataFrame =
     RemoteDataFrameProxy(SourceOp(validateUrl(url)), getStream, openDataFrame)
+
+  def isAlive(): Boolean = {
+    try {
+      flightClient.listFlights(Criteria.ALL).iterator()
+      true
+    } catch {
+      case _: FlightRuntimeException => false
+    }
+  }
 
   protected def validateUrl(url: String): String = {
     if (UrlValidator.isPath(url)) url

@@ -52,7 +52,7 @@ object TransformTree {
       val from = path.getString("from")
       val to = path.getString("to")
 
-      val inportStr = path.optString("inport", "0")
+      val inportStr = path.optString("toPort", "0")
       val inport = try {
         inportStr.toInt
       } catch {
@@ -71,7 +71,6 @@ object TransformTree {
     def recursiveBuild(currentId: String): TransformOp = {
       val nodeJson = nodesMap(currentId)
       val nodeType = nodeJson.getString("type")
-//      val properties = nodeJson.optJSONObject("properties", new JSONObject())
 
       val edges = incomingEdges.getOrElse(currentId, mutable.Buffer.empty)
 

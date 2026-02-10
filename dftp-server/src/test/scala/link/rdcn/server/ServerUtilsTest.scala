@@ -71,7 +71,7 @@ class ServerUtilsTest {
   def testConvertStructTypeToArrowSchema_LogicalTypes(): Unit = {
     val structType = StructType(List(
       Column("c1", RefType),
-      Column("c2", BlobType)
+      Column("c2", BinaryType)
     ))
 
     val arrowSchema = ServerUtils.convertStructTypeToArrowSchema(structType)
@@ -116,7 +116,7 @@ class ServerUtilsTest {
     assertEquals(BooleanType, columns(5).colType, "Arrow BIT should map to BooleanType")
     assertEquals(BinaryType, columns(6).colType, "Arrow VARBINARY without metadata should map to BinaryType")
     assertEquals(RefType, columns(7).colType, "Arrow VARCHAR with metadata should map to RefType")
-    assertEquals(BlobType, columns(8).colType, "Arrow VARBINARY with metadata should map to BlobType")
+    assertEquals(BinaryType, columns(8).colType, "Arrow VARBINARY with metadata should map to BlobType")
   }
 
   @Test

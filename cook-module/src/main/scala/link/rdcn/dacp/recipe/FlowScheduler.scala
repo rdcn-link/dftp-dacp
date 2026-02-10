@@ -11,7 +11,7 @@ object FlowScheduler {
 
   case class Edge(from: String, to: String)
 
-  def schedule(sourceJsonString: String): String = {
+  def schedule(sourceJsonString: String): (String, String) = {
     // 1. 解析原始 JSON
     val root = new JSONObject(sourceJsonString)
     val flowJson = root.getJSONObject("flow")
@@ -45,7 +45,7 @@ object FlowScheduler {
     }
 
     // 3. 确定每个节点的 Location
-    val nodeLocations = determineLocations(rawNodes.toMap, inputs.toMap)
+    val nodeLocations: Map[String, String] = determineLocations(rawNodes.toMap, inputs.toMap)
 
     // 4. 选举全局主节点 (Global Master)
     val locationCounts = nodeLocations.values.groupBy(identity).mapValues(_.size)
@@ -59,7 +59,7 @@ object FlowScheduler {
 
     val finalRoot = new JSONObject()
     finalRoot.put("flow", finalFlowJson)
-    finalRoot.toString(2)
+    (finalRoot.toString(2), globalMasterUrl)
   }
 
   /**
@@ -139,12 +139,11 @@ object FlowScheduler {
       remoteNode.put("id", remoteUrl)
       remoteNode.put("type", "RemoteDataFrameFlowNode")
 
-      val props = new JSONObject()
-      props.put("baseUrl", remoteUrl)
-      props.put("flow", subFlow)
-      props.put("certificate", "")
+      //      val props = new JSONObject()
+      remoteNode.put("baseUrl", remoteUrl)
+      remoteNode.put("flow", subFlow)
+      remoteNode.put("certificate", "")
 
-      remoteNode.put("properties", props)
       stops.put(remoteNode)
     }
 
@@ -196,7 +195,7 @@ object FlowScheduler {
       val nType = nodeJson.getString("type")
 
       if (nType == "SourceNode") {
-        val path = nodeJson.optJSONObject("properties").optString("path", "")
+        val path = nodeJson.optString("path", "")
         locations(id) = extractUrlPrefix(path)
       } else {
         val parents = inputs.getOrElse(id, Seq())

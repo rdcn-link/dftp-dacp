@@ -4,7 +4,7 @@
  * @Data 2025/11/6 15:01
  * @Modified By:
  */
-package link.rdcn.recipe
+package link.rdcn.dacp.recipe
 
 import link.rdcn.dacp.optree.FileRepositoryBundle
 import link.rdcn.dacp.recipe.{FifoFileBundleFlowNode, Flow, FlowNode, FlowPath, SourceNode}

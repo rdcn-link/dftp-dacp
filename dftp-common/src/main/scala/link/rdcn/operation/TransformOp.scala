@@ -89,8 +89,10 @@ case class SourceOp(dataFrameUrl: String) extends TransformOp {
 
   override def executionProgress(): Option[Double] = {
     if(dataFrame == null) Some(0.0)
-    else if(dataFrame.getDataFrameStatistic.rowCount == -1L) None
-    else {
+    else if(dataFrame.getDataFrameStatistic.rowCount == -1L) Some(0.0)
+    else if(dataFrame.mapIterator[Boolean](iter => iter.isCompleted)) {
+      Some(1.0)
+    }else {
       val progress = dataFrame.mapIterator[Double](iter =>
         iter.consumeItems.toDouble/dataFrame.getDataFrameStatistic.rowCount)
       Some(progress)

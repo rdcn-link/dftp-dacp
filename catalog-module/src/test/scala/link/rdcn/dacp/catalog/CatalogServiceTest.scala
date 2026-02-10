@@ -55,7 +55,7 @@ class CatalogServiceTest {
     }
 
     // Execute
-    val df = mockService.doListDataSets(BASE_URL)
+    val df = mockService.doListDataSets()
 
     // Assertions
     val expectedSchema = StructType.empty
@@ -77,7 +77,7 @@ class CatalogServiceTest {
     assertEquals(dataSetName, infoJson.getString("name"), "Field 'name' in 'DataSetInfo' JSON does not match")
 
     // Verify Ref link
-    assertEquals(s"$BASE_URL/listDataFrames/$dataSetName", row1._4.asInstanceOf[URIRef].url,
+    assertEquals(s"/dataset/dataset1/dataframes", row1._4.asInstanceOf[URIRef].getUrl,
       "URL in 'dataFrames' (Ref) column does not match")
   }
 

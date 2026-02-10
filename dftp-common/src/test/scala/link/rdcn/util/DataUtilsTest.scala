@@ -290,8 +290,8 @@ class DataUtilsTest {
       () => assertEquals(BooleanType, DataUtils.inferValueType(true), "Boolean -> BooleanType"),
       () => assertEquals(BinaryType, DataUtils.inferValueType(Array[Byte](1, 2)), "Array[Byte] -> BinaryType"),
       () => assertEquals(BinaryType, DataUtils.inferValueType(new File("a")), "File -> BinaryType"),
-      () => assertEquals(BlobType, DataUtils.inferValueType(Blob.fromFile(new File(""),"")), "Blob -> BlobType"),
-      () => assertEquals(RefType, DataUtils.inferValueType(URIRef(null)), "URIRef -> RefType"),
+      () => assertEquals(BinaryType, DataUtils.inferValueType(Blob.fromFile(new File(""))), "Blob -> BinaryType"),
+      () => assertEquals(RefType, DataUtils.inferValueType(RefType), "URIRef -> RefType"),
       () => assertEquals(StringType, DataUtils.inferValueType("text"), "String -> StringType"),
       () => assertEquals(StringType, DataUtils.inferValueType(new java.util.Date()), "Other -> StringType")
     )

@@ -1,4 +1,4 @@
-package link.rdcn.user
+package link.rdcn.dacp.user
 
 import link.rdcn.dacp.user.DataOperationType
 import org.junit.jupiter.api.Assertions.{assertEquals, assertTrue}

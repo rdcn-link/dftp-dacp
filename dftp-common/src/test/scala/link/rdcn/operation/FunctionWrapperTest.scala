@@ -113,14 +113,6 @@ class FunctionWrapperJunitTest {
     }
   }
 
-  val mockDataFramePairFunction = new SerializableFunction[(DataFrame, DataFrame), DataFrame] {
-    override def apply(v: (DataFrame, DataFrame)): DataFrame = {
-      val left: List[Int] = v._1.collect().map(row => row._1.asInstanceOf[Int])
-      val right: List[Int] = v._2.collect().map(row => row._1.asInstanceOf[Int])
-      DataFrame.fromSeq(left.zip(right).map { case (a, b) => a + b })
-    }
-  }
-
   // Create Base64 encoded serialized MockGenericFunctionCall
   private val serializedSingleRowCall: String = {
     val bytes = FunctionSerializer.serialize(SingleRowCall(new SerializableFunction[Row, Row] {
@@ -139,15 +131,26 @@ class FunctionWrapperJunitTest {
     Base64.getEncoder.encodeToString(bytes)
   }
 
+  // Updated to match new signature: (DataFrame, JobFlowLogger, JSONObject) => DataFrame
   private val serializedDataFrameCall11: String = {
-    val bytes = FunctionSerializer.serialize(new DataFrameCall11(new SerializableFunction[DataFrame, DataFrame] {
-      override def apply(v1: DataFrame): DataFrame = v1
-    }))
+    val f = new SerializableFunction[(DataFrame, link.rdcn.JobFlowLogger, JSONObject), DataFrame] {
+      override def apply(v: (DataFrame, link.rdcn.JobFlowLogger, JSONObject)): DataFrame = v._1
+    }
+    val bytes = FunctionSerializer.serialize(new DataFrameCall11(f))
     Base64.getEncoder.encodeToString(bytes)
   }
 
+  // Updated to match new signature: ((DataFrame, DataFrame), JobFlowLogger, JSONObject) => DataFrame
   private val serializedDataFrameCall21: String = {
-    val bytes = FunctionSerializer.serialize(new DataFrameCall21(mockDataFramePairFunction))
+    val f = new SerializableFunction[((DataFrame, DataFrame), link.rdcn.JobFlowLogger, JSONObject), DataFrame] {
+      override def apply(v: ((DataFrame, DataFrame), link.rdcn.JobFlowLogger, JSONObject)): DataFrame = {
+        val (df1, df2) = v._1
+        val left: List[Int] = df1.collect().map(row => row._1.asInstanceOf[Int])
+        val right: List[Int] = df2.collect().map(row => row._1.asInstanceOf[Int])
+        DataFrame.fromSeq(left.zip(right).map { case (a, b) => a + b })
+      }
+    }
+    val bytes = FunctionSerializer.serialize(new DataFrameCall21(f))
     Base64.getEncoder.encodeToString(bytes)
   }
 

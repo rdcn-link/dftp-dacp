@@ -17,7 +17,7 @@ class ValueTypeTest {
     assertEquals("Int", IntType.name)
     assertEquals("String", StringType.name)
     assertEquals("Boolean", BooleanType.name)
-    assertEquals("Blob", BlobType.name)
+    assertEquals("Blob", BinaryType.name)
   }
 
   @Test
@@ -28,7 +28,7 @@ class ValueTypeTest {
     assertTrue(ValueType.isNumeric(DoubleType), "Double should be numeric")
 
     assertFalse(ValueType.isNumeric(StringType), "String should not be numeric")
-    assertFalse(ValueType.isNumeric(BlobType), "Blob should not be numeric")
+    assertFalse(ValueType.isNumeric(BinaryType), "Blob should not be numeric")
   }
 
   @Test

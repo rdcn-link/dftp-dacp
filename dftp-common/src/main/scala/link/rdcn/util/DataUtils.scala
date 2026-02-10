@@ -328,12 +328,8 @@ object DataUtils extends Logging{
   }
 
   def blobToDataFrame(blob: Blob): DataFrame = {
-    blob.offerStream[DataFrame](inputStream => {
-      val stream: Iterator[Row] = DataUtils.chunkedIterator(inputStream)
-        .map(bytes => Row.fromSeq(Seq(bytes)))
-      val schema = StructType.blobStreamStructType
-      DefaultDataFrame(schema, stream)
-    })
+    val schema = StructType.blobStreamStructType
+    DefaultDataFrame(schema, blob.openByteStream().map(bytes => Row.fromSeq(Seq(bytes))))
   }
 
   def dataFrameToBlob(df: DataFrame): Blob = {
@@ -351,6 +347,16 @@ object DataUtils extends Logging{
         })
         consume(inputStream)
       }
+
+      override def openByteStream(): ClosableIterator[Array[Byte]] =
+        df.mapIterator[ClosableIterator[Array[Byte]]](iter => {
+          val stream = iter.map(row => row.get(0) match {
+            case bytes: Array[Byte] => bytes
+            case other => throw new IllegalArgumentException(s"except Array[Byte] but $other")
+          })
+          ClosableIterator(stream)(iter.close())
+        })
+
     }
   }
 

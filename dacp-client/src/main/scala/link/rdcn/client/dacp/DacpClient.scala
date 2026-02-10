@@ -1,7 +1,7 @@
 package link.rdcn.client
 
 import link.rdcn.JobFlowLogger
-import link.rdcn.dacp.catalog.CatalogActionMethodType
+import link.rdcn.dacp.catalog.{CatalogActionMethodType, DatasetMetaData}
 import link.rdcn.dacp.cook.{CookActionMethodType, JobStatus}
 import link.rdcn.dacp.optree._
 import link.rdcn.dacp.recipe._
@@ -44,6 +44,11 @@ class DacpClient(host: String, port: Int, useTLS: Boolean = false) extends DftpC
   def getDataSetMetaData(dsName: String): Model = {
     val actionResult = doAction(CatalogActionMethodType.GET_DATASET_METADATA, new JSONObject().put("dataSetName", dsName))
     getModelByString(actionResult.result)
+  }
+
+  def getDataSetInfo(dsName: String): DatasetMetaData = {
+    val actionResult = doAction("GET_DATASET_INFO", new JSONObject().put("datasetId", dsName))
+    DatasetMetaData.fromJSON(actionResult.getResultJson())
   }
 
   def getDataFrameMetaData(dfName: String): Model = {
@@ -138,9 +143,9 @@ class DacpClient(host: String, port: Int, useTLS: Boolean = false) extends DftpC
     JobStatus.fromJSON(actionResult.getResultJson())
   }
 
-  def getJobExecuteProcess(jobId: String): Double = {
+  def getJobExecuteProcess(jobId: String): String = {
     val actionResult = doAction(CookActionMethodType.GET_JOB_EXECUTE_PROCESS, new JSONObject().put("jobId", jobId))
-    actionResult.getResultJson().getDouble("process")
+    actionResult.result
   }
 
   def getJobExecuteResult(jobId: String): ExecutionResult = {

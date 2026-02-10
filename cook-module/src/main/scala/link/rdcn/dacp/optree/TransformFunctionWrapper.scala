@@ -463,9 +463,19 @@ trait FileRepositoryBundle extends TransformFunctionWrapper {
         case f: DataFrame =>
           if (f.schema.columns.length == 1 && f.schema.columns.head.colType == BinaryType) {
 //            非结构化数据
-            val blob = DataUtils.dataFrameToBlob(f)
             val file = new File(dfAndInput._2._1)
-            writeBlobToFile(blob, file)
+            val out = new BufferedOutputStream(new FileOutputStream(file))
+            try {
+              f.foreach { row =>
+                row.get(0) match {
+                  case bytes: Array[Byte] => out.write(bytes)
+                  case other => throw new Exception(s"expect Array[Byte] but $other")
+                }
+              }
+              out.flush()
+            } finally {
+              out.close()
+            }
           } else if (f.schema == StructType.binaryStructType) {
 //            文件夹
             val fileIndex = f.schema.indexOf("file").get
@@ -495,7 +505,9 @@ trait FileRepositoryBundle extends TransformFunctionWrapper {
               }
             } else {
 //            MMAP文件
-              FilePipe.fromFilePath(dfAndInput._2._1, dfAndInput._2._2).write(f.mapIterator(iter => Seq(f.schema.columns.map(_.name).mkString(",")).iterator ++ iter.map(row => row.toSeq.mkString(","))))
+              FilePipe.fromFilePath(dfAndInput._2._1, dfAndInput._2._2)
+                .write(f.mapIterator(iter => Seq(f.schema.columns.map(_.name)
+                  .mkString(",")).iterator ++ iter.map(row => row.toSeq.mkString(","))))
             }
           }
       }

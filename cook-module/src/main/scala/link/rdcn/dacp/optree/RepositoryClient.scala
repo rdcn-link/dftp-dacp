@@ -1,28 +1,15 @@
 package link.rdcn.dacp.optree
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model._
-import akka.stream.scaladsl.{FileIO, Source}
-import akka.util.ByteString
 import cn.cnic.operatordownload.client.OperatorClient
-import link.rdcn.dacp.optree.fifo.FileType.FileType
 import link.rdcn.dacp.optree.fifo.{DockerContainer, FileType}
-import link.rdcn.dacp.recipe.FifoFileBundleFlowNode
 import link.rdcn.dacp.utils.FileUtils
-import link.rdcn.struct.DataFrame
 import org.json.{JSONArray, JSONObject}
 
 import java.io.{File, FileOutputStream, IOException, InputStream}
 import java.nio.file.Paths
-import java.util
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
 
 /**
  * @Author Yomi
@@ -55,32 +42,31 @@ class RepositoryClient(host: String = "http://10.0.89.39", port: Int = 8090) ext
 
       val inputCounter = new AtomicLong(0)
       val outputCounter = new AtomicLong(0)
-      val ja = new JSONArray(operatorInfo.getJSONObject("data").getString("paramInfos"))
-      val files = (0 until ja.length).map(index => ja.getJSONObject(index))
+
+      val inputJa = operatorInfo.getJSONObject("data").getJSONObject("specialProperties").getJSONArray("inputFiles")
+      val inFiles =  (0 until inputJa.length).map(index => inputJa.getJSONObject(index))
         //subfix,fileType,inParam,paramType
-        .map(jo => (jo.getString("name"), jo.getString("fileType"), jo.getString("paramDescription"), jo.getString("paramType")))
-        .map(file => {
-          if (file._4 == "INPUT_FILE") {
-            (file._1, file._2, file._3, file._4, s"input${inputCounter.incrementAndGet()}${file._1}")
-          } else {
-            (file._1, file._2, file._3, file._4, s"output${outputCounter.incrementAndGet()}${file._1}")
-          }
-        })
+        .map(jo => (jo.getString("name"), jo.getString("fileType"), jo.getString("paramDescription")))
+        .map(file =>(file._1, file._2, file._3, s"input${inputCounter.incrementAndGet()}${file._1}"))
+      val outputJa = operatorInfo.getJSONObject("data").getJSONObject("specialProperties").getJSONArray("outputFiles")
+      val outFiles = (0 until outputJa.length).map(index => outputJa.getJSONObject(index))
+        .map(jo => (jo.getString("name"), jo.getString("fileType"), jo.getString("paramDescription")))
+        .map(file =>(file._1, file._2, file._3, s"output${outputCounter.incrementAndGet()}${file._1}"))
+
       val commands = operatorInfo.getJSONObject("data").getString("command").split(" ")
 
       val operationId = s"${functionName}_${UUID.randomUUID().toString}"
       val hostPath = FileUtils.getTempDirectory("", operationId)
       val containerPath = s"/$operationId"
 
-      val commandsWithParams = commands ++ files.flatMap(file => Seq(file._3, Paths.get(containerPath, file._5).toString))
+      val commandsWithParams = commands ++ (inFiles ++ outFiles).flatMap(file => Seq(file._3, Paths.get(containerPath, file._4).toString))
       var outputFileType = FileType.FIFO_BUFFER
 
-      val inputFiles = files.filter(_._4 == "INPUT_FILE")
-        .map(file => (Paths.get(hostPath, file._5).toString, FileType.fromString(file._2)))
-      val outputFiles = files.filter(_._4 == "OUTPUT_FILE")
+      val inputFiles = inFiles.map(file => (Paths.get(hostPath, file._4).toString, FileType.fromString(file._2)))
+      val outputFiles = outFiles
         .map { file =>
           outputFileType = FileType.fromString(file._2)
-          (Paths.get(hostPath, file._5).toString, outputFileType)
+          (Paths.get(hostPath, file._4).toString, outputFileType)
         }
       val dockerContainer = DockerContainer(functionName, Some(hostPath), Some(containerPath), Some(operatorImage))
       if (outputFileType == FileType.FIFO_BUFFER)

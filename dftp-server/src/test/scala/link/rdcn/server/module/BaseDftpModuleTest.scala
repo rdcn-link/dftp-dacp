@@ -153,8 +153,7 @@ class BaseDftpModuleTest {
     Files.write(file.toPath, "content".getBytes)
 
     // Fixed: Added resourcePath argument
-    val blob = Blob.fromFile(file, "/resource/path")
+    val blob = Blob.fromFile(file)
     assertNotNull(blob)
-    assertEquals("/resource/path", blob.uri)
   }
 }

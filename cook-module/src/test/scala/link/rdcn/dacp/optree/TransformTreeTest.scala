@@ -4,7 +4,7 @@
  * @Data 2025/11/6 15:05
  * @Modified By:
  */
-package link.rdcn.optree
+package link.rdcn.dacp.optree
 
 import link.rdcn.dacp.optree._
 import link.rdcn.dacp.optree.fifo.RowFilePipe
@@ -25,38 +25,54 @@ class TransformTreeTest {
 
   // --- Local Mocks ---
 
-  class MockTransformerNode(wrapper: TransformFunctionWrapper, input: TransformOp) extends TransformerNode(wrapper) {
+  class MockTransformerNode(wrapper: TransformFunctionWrapper, input: TransformOp) extends TransformerNode(wrapper, input) {
     val released = new AtomicBoolean(false)
     inputs = Seq(input)
-    override def release(): Unit = released.set(true)
+
+    override def release(): Unit = {
+      super.release()
+      released.set(true)
+    }
   }
 
   class MockReleasableTransformerNode extends TransformerNode(null) {
     val released = new AtomicBoolean(false)
+
     override def release(): Unit = released.set(true)
   }
 
   class MockTransformFunctionWrapper(name: String, dfToReturn: DataFrame) extends TransformFunctionWrapper {
     var applyCalledWith: Seq[DataFrame] = _
+
     override def applyToDataFrames(inputs: Seq[DataFrame], ctx: FlowExecutionContext): DataFrame = {
       applyCalledWith = inputs
       dfToReturn
     }
+
     override def toJson: JSONObject = new JSONObject()
   }
 
   class MockFlowExecutionContext(async: Boolean) extends FlowExecutionContext {
     val registeredFutures = scala.collection.mutable.ArrayBuffer[TransformOp]()
+
     override def isAsyncEnabled(wrapper: TransformFunctionWrapper): Boolean = async
+
     override def registerAsyncResult(transformOp: TransformOp, future: Future[DataFrame], thread: Thread): Unit = {
       registeredFutures.append(transformOp)
     }
+
     // Stubs
     override def fairdHome: String = ""
+
     override def pythonHome: String = ""
+
     override def loadRemoteDataFrame(baseUrl: String, path: TransformOp, credentials: Credentials): Option[DataFrame] = None
+
     override def getRepositoryClient(): Option[OperatorRepository] = None
+
     override def loadSourceDataFrame(dataFrameNameUrl: String): Option[DataFrame] = None
+
+    override def getJobId(): String = ""
   }
 
   // --- Tests ---
@@ -72,7 +88,7 @@ class TransformTreeTest {
 
   @Test
   def testTransformerNode_Release(): Unit = {
-    val child = new MockReleasableTransformerNode
+    val child = new MockReleasableTransformerNode()
     val parent = new MockTransformerNode(new MockTransformFunctionWrapper("parent", null), child)
     val root = new MockTransformerNode(new MockTransformFunctionWrapper("root", null), parent)
 
@@ -89,8 +105,11 @@ class TransformTreeTest {
 
     val inputOp = new TransformOp {
       override def execute(ctx: ExecutionContext): DataFrame = inputDf
+
       override def operationType: String = "Mock"
+
       override def toJson: JSONObject = new JSONObject()
+
       override var inputs: Seq[TransformOp] = Seq.empty
     }
 
@@ -112,10 +131,13 @@ class TransformTreeTest {
       override def execute(ctx: ExecutionContext): DataFrame = {
         val pipe = new RowFilePipe(pipeFile)
         pipe.write(expectedData.iterator)
-        DefaultDataFrame(StructType.empty, Iterator.empty)
+        DataFrame.fromSeq(expectedData)
       }
+
       override def operationType: String = "MockWriter"
+
       override def toJson: JSONObject = new JSONObject()
+
       override var inputs: Seq[TransformOp] = Seq.empty
     }
 
